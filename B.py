@@ -45,8 +45,9 @@ class BerkeleyAligner():
     # translation and distortion parameters as a tuple.
     def train2(self, aligned_sents, num_iter):
         print 'training 2'
-        ibm1 = IBMModel1(aligned_sents, num_iter)
+        ibm1 = IBMModel1(aligned_sents, 10)
         t = ibm1.probabilities
+        # t = defaultdict(lambda: defaultdict(lambda: 0.0))
 
         # Vocabulary of each language
         german_vocab = set()
@@ -55,6 +56,16 @@ class BerkeleyAligner():
             english_vocab.update(alignSent.mots)
             german_vocab.update(alignSent.words)
         german_vocab.add(None)
+
+        # for word in german_vocab:
+        #     possibles = []
+        #     for sent in aligned_sents:
+        #         if word in sent.words:
+        #             possibles += sent.mots
+        #     possibles = set(possibles)
+        #     length = len(possibles)
+        #     for possible in possibles:
+        #         t[possible][word] = 1/float(length)
 
         q = defaultdict(float)
 
@@ -99,9 +110,12 @@ class BerkeleyAligner():
         return c
     def train(self, aligned_sents, num_iter):
         print 'start train1s'
+
         ibm1 = IBMModel1(aligned_sents, 10)
         t = ibm1.probabilities
 
+        # t = defaultdict(lambda: defaultdict(lambda: 0.0))
+        
         # Vocabulary of each language
         german_vocab = set()
         english_vocab = set()
@@ -110,10 +124,17 @@ class BerkeleyAligner():
             german_vocab.update(alignSent.mots)
         german_vocab.add(None)
 
-        q = defaultdict(float)
+        # for word in german_vocab:
+        #     possibles = []
+        #     for sent in aligned_sents:
+        #         if word in sent.mots:
+        #             possibles += sent.words
+        #     possibles = set(possibles)
+        #     length = len(possibles)
+        #     for possible in possibles:
+        #         t[possible][word] = 1/float(length)
 
-        # Initialize the distribution of alignment probability,
-        # a(i|j,l, m) = 1/(m + 1)
+        q = defaultdict(float)
 
         for alignSent in aligned_sents:
             english = alignSent.words
