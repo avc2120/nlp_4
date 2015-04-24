@@ -48,10 +48,10 @@ class BerkeleyAligner():
             
             # Initialize the maximum probability with Null token
             max_align_prob = (self.t[en_word][None]*self.q[(0,j+1,l_e,l_g)], None)
-            for i, fr_word in enumerate(align_sent.mots):
+            for i, g_word in enumerate(align_sent.mots):
                 # Find out the maximum probability
                 max_align_prob = max(max_align_prob,
-                    (self.t[en_word][fr_word]*self.q[(i+1,j+1,l_e,l_g)], i))
+                    (self.t[en_word][g_word]*self.q[(i+1,j+1,l_e,l_g)], i))
 
             # If the maximum probability is not Null token,
             # then append it to the alignment. 
@@ -66,7 +66,7 @@ class BerkeleyAligner():
     def train2(self, aligned_sents, num_iter):
         print 'training 2'
         ibm1 = IBMModel1(aligned_sents, 10)
-        t_eg = ibm1.probabilities
+        t = ibm1.probabilities
 
         # Vocabulary of each language
         german_vocab = set()
@@ -93,7 +93,7 @@ class BerkeleyAligner():
 
         print 'collecting counts'
         for i in range(0, num_iter):
-            count_eg = defaultdict(float)
+            count = defaultdict(float)
             total_g = defaultdict(float)
 
             c = defaultdict(float)
@@ -111,19 +111,19 @@ class BerkeleyAligner():
                     en_word = english[j-1]
                     total_e[en_word] = 0
                     for i in range(0, l_g+1):
-                        total_e[en_word] += t_eg[en_word][german[i]] * q[(i,j,l_e,l_g)]
+                        total_e[en_word] += t[en_word][german[i]] * q[(i,j,l_e,l_g)]
 
                 # collect counts
                 for j in range(1, l_e+1):
                     en_word = english[j-1]
                     for i in range(0, l_g+1):
-                        fr_word = german[i]
-                        delta = t_eg[en_word][fr_word] * q[(i,j,l_e,l_g)] / total_e[en_word]
-                        count_eg[(en_word,fr_word)] += delta
-                        total_g[fr_word] += delta
+                        g_word = german[i]
+                        delta = t[en_word][g_word] * q[(i,j,l_e,l_g)] / total_e[en_word]
+                        count[(en_word,g_word)] += delta
+                        total_g[g_word] += delta
                         c[(i,j,l_e,l_g)] += delta
                         total_align[(j,l_e,l_g)] += delta
-        return count_eg, total_g, c, total_align
+        return count, total_g, c, total_align
     def train(self, aligned_sents, num_iter):
         # words = []
         # for sent in aligned_sents:
@@ -201,7 +201,7 @@ class BerkeleyAligner():
         # return (t,q)
         print 'start train1s'
         ibm1 = IBMModel1(aligned_sents, 10)
-        t_eg = ibm1.probabilities
+        t = ibm1.probabilities
 
         # Vocabulary of each language
         german_vocab = set()
@@ -226,9 +226,9 @@ class BerkeleyAligner():
                 for j in range(1, l_e+1):
                     q[(i,j,l_e,l_g)] = initial_value
         print 'collecting train 1'
-        count_eg1, total_g1, c1, total_align1 = self.train2(aligned_sents, num_iter) 
+        count1, total_g1, c1, total_align1 = self.train2(aligned_sents, num_iter) 
         for i in range(0, num_iter):
-            count_eg = defaultdict(float)
+            count = defaultdict(float)
             total_g = defaultdict(float)
 
             c = defaultdict(float)
@@ -247,29 +247,29 @@ class BerkeleyAligner():
                     en_word = english[j-1]
                     total_e[en_word] = 0
                     for i in range(0, l_g+1):
-                        total_e[en_word] += t_eg[en_word][german[i]] * q[(i,j,l_e,l_g)]
+                        total_e[en_word] += t[en_word][german[i]] * q[(i,j,l_e,l_g)]
 
                 # collect counts
                 for j in range(1, l_e+1):
                     en_word = english[j-1]
                     for i in range(0, l_g+1):
-                        fr_word = german[i]
-                        delta = t_eg[en_word][fr_word] * q[(i,j,l_e,l_g)] / total_e[en_word]
-                        count_eg[(en_word,fr_word)] += delta
-                        total_g[fr_word] += delta
+                        g_word = german[i]
+                        delta = t[en_word][g_word] * q[(i,j,l_e,l_g)] / total_e[en_word]
+                        count[(en_word,g_word)] += delta
+                        total_g[g_word] += delta
                         c[(i,j,l_e,l_g)] += delta
                         total_align[(j,l_e,l_g)] += delta
             
             # estimate probabilities
 
-            t_eg = defaultdict(lambda: defaultdict(lambda: 0.0))
+            t = defaultdict(lambda: defaultdict(lambda: 0.0))
             q = defaultdict(float)
 
             # Estimate the new lexical translation probabilities
             print 'calculating t and q'
             for f in german_vocab:
                 for e in english_vocab:
-                    t_eg[e][f] = (count_eg[(e,f)] + count_eg1[(f,e)])/ (total_g[f] + total_g1[e])
+                    t[e][f] = (count[(e,f)] + count1[(f,e)])/ (total_g[f] + total_g1[e])
 
             # Estimate the new alignment probabilities
             for alignSent in aligned_sents:
@@ -281,7 +281,7 @@ class BerkeleyAligner():
                     for j in range(1, l_e+1):
                         q[(i,j,l_e,l_g)] = (c[(i,j,l_e,l_g)] +  c1[(j,i,l_g,l_e)]) / (total_align[(j,l_e,l_g)] + total_align1[(i,l_g,l_e)] )
 
-        return t_eg, q
+        return t, q
 
 
 def main(aligned_sents):
