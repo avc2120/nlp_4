@@ -19,26 +19,6 @@ class BerkeleyAligner():
     # TODO: Computes the alignments for align_sent, using this model's parameters. Return
     #       an AlignedSent object, with the sentence pair and the alignments computed.
     def align(self, align_sent):
-        # alignments = []
-        # english = ['STOP'] +  align_sent.mots
-        # german = align_sent.words
-        # l = len(english)
-        # m = len(german)
-        # for i in range(0,m):
-        #     maximum = -sys.maxint
-        #     argmax = None
-        #     for j in range(0,l):
-        #         if self.q[(j,i,l,m)] == 0 or self.t[(german[i], english[j])] == 0:
-        #             prod = -1000
-        #         else:
-        #             prod = math.log(self.q[(j,i,l,m)],2) + math.log(self.t[(german[i], english[j])],2)
-        #         if prod > maximum:
-        #             maximum = prod
-        #             argmax = (i,j)
-        #     alignments.append(argmax)
-        # sent = AlignedSent(german, english, Alignment(alignments))
-        # return sent
-
         alignment = []
 
         l = len(align_sent.words)
@@ -65,7 +45,7 @@ class BerkeleyAligner():
     # translation and distortion parameters as a tuple.
     def train2(self, aligned_sents, num_iter):
         print 'training 2'
-        ibm1 = IBMModel1(aligned_sents, 10)
+        ibm1 = IBMModel1(aligned_sents, num_iter)
         t = ibm1.probabilities
 
         # Vocabulary of each language
@@ -77,9 +57,6 @@ class BerkeleyAligner():
         german_vocab.add(None)
 
         q = defaultdict(float)
-
-        # Initialize the distribution of alignment probability,
-        # a(i|j,l, m) = 1/(m + 1)
 
         for alignSent in aligned_sents:
             english = alignSent.mots
@@ -93,10 +70,6 @@ class BerkeleyAligner():
 
         print 'collecting counts'
         for i in range(0, num_iter):
-            c = defaultdict(float)
-            total_g = defaultdict(float)
-
-            c = defaultdict(float)
             c = defaultdict(float)
             total_e = defaultdict(float)
 
@@ -120,85 +93,11 @@ class BerkeleyAligner():
                         g_word = german[i]
                         delta = t[en_word][g_word] * q[(i,j,l,m)] / total_e[en_word]
                         c[(en_word,g_word)] += delta
-                        total_g[g_word] += delta
+                        c[g_word] += delta
                         c[(i,j,l,m)] += delta
                         c[(j,l,m)] += delta
-        return total_g, c
+        return c
     def train(self, aligned_sents, num_iter):
-        # words = []
-        # for sent in aligned_sents:
-        #     s =  sent.mots
-        #     words += s
-        # words = set(words)
-        
-        # t = defaultdict(float)
-        # q = defaultdict(float)
-        # delta = defaultdict(float)
-        # c = defaultdict(float)
-        # t1 = defaultdict(float)
-        # q1 = defaultdict(float)
-
-        # for word in words:
-        #     t[word] = []
-        #     possibles = []
-        #     for sent in aligned_sents:
-        #         s = sent.mots
-        #         if word in s:
-        #             possibles += sent.words
-        #     possibles = set(possibles)
-        #     length = len(possibles)
-        #     for possible in possibles:
-        #         t[(possible, word)] = 1/float(length)
-        
-        # for sent in aligned_sents: #english j foreign i
-        #     english =['STOP'] +  sent.mots
-        #     german = sent.words
-        #     l = len(english)
-        #     m = len(german)
-        #     for (i,j) in itertools.product(range(0,m), range(0,l)):
-        #         q[(j,i,l,m)] += 1.0
-        # total_prob = len(q)
-        # for key in q.keys():
-        #     q[key] = 1.0/total_prob
-
-
-        # for s in range(0, num_iters):
-        #     for (k, sent) in enumerate(aligned_sents):
-        #         german =  sent.words
-        #         english = ['STOP'] + sent.mots
-        #         l = len(english)
-        #         m = len(german)
-        #         sum = 0.0
-        #         for (i, g) in enumerate(german):
-        #             for (j,e) in enumerate(english):
-        #                 sum += q[(j,i,l,m)]*t[(g, e)]
-        #             for (j,e) in enumerate(english):
-        #                 delta[(k,i,j)] = float(q[(j,i,l,m)])*t[(g, e)]/float(sum)
-        
-        # for s in range(0, num_iters):
-        #     for k in range(0, len(aligned_sents)):
-        #         german = aligned_sents[k].words
-        #         english = ['STOP'] + aligned_sents[k].mots
-        #         l = len(english)
-        #         m = len(german)
-        #         for (i,j) in itertools.product(range(0,m), range(1,l)):
-        #             c[(english[j], german[i])] += float(delta[(k,i,j)])
-        #             c[english[j]] += float(delta[(k,i,j)])
-        #             c[(j,i,l,m)] += float(delta[(k,i,j)])
-        #             c[(i,l,m)] += float(delta[(k,i,j)])
-
-        # for s in range(0, num_iters):
-        #     for k in range(0, len(aligned_sents)):
-        #         german = aligned_sents[k].words
-        #         english = ['STOP'] + aligned_sents[k].mots
-        #         l = len(english)
-        #         m = len(german)
-        #         for (i,j) in itertools.product(range(0,m), range(1,l)):
-        #             print float(c[english[j]])
-        #             t[(german[i], english[j])] = float(c[(english[j], german[i])])/float(c[english[j]])
-        #             q[(j,i,l,m)] = c[(j,i,l,m)]/float(c[(i,l,m)])
-        # print t,q
-        # return (t,q)
         print 'start train1s'
         ibm1 = IBMModel1(aligned_sents, 10)
         t = ibm1.probabilities
@@ -226,11 +125,9 @@ class BerkeleyAligner():
                 for j in range(1, l+1):
                     q[(i,j,l,m)] = initial_value
         print 'collecting train 1'
-        total_g1, c1 = self.train2(aligned_sents, num_iter) 
+        c1 = self.train2(aligned_sents, num_iter) 
 
         for i in range(0, num_iter):
-            c = defaultdict(float)
-            total_g = defaultdict(float)
 
             c = defaultdict(float)
 
@@ -256,7 +153,7 @@ class BerkeleyAligner():
                         g_word = german[i]
                         delta = t[en_word][g_word] * q[(i,j,l,m)] / total_e[en_word]
                         c[(en_word,g_word)] += delta
-                        total_g[g_word] += delta
+                        c[g_word] += delta
                         c[(i,j,l,m)] += delta
                         c[(j,l,m)] += delta
             
@@ -269,7 +166,7 @@ class BerkeleyAligner():
             print 'calculating t and q'
             for f in german_vocab:
                 for e in english_vocab:
-                    t[e][f] = (c[(e,f)] + c1[(f,e)])/ (total_g[f] + total_g1[e])
+                    t[e][f] = (c[(e,f)] + c1[(f,e)])/ (c[f] + c1[e])
 
             # Estimate the new alignment probabilities
             for alignSent in aligned_sents:
