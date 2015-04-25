@@ -68,17 +68,6 @@ class BerkeleyAligner():
                 t[value][key] = 1.0/len(counts[key])
         german_vocab.add(None)
 
-        # t = defaultdict(lambda: defaultdict(lambda: 0.0))
-        # for word in german_vocab:
-        #     possibles = []
-        #     for sent in aligned_sents:
-        #         if word in sent.words:
-        #             possibles += sent.mots
-        #     possibles = set(possibles)
-        #     length = len(possibles)
-        #     for possible in possibles:
-        #         t[possible][word] = 1/float(length)
-
         q = defaultdict(float)
 
         for alignSent in aligned_sents:
@@ -121,10 +110,7 @@ class BerkeleyAligner():
                         c[(j,l,m)] += delta
         return c
     def train(self, aligned_sents, num_iter):
-        print 'start train1s'
-
-        # ibm1 = IBMModel1(aligned_sents, 10)
-        # t = ibm1.probabilities
+        print 'start train'
         
         # Vocabulary of each language
         german_vocab = set()
@@ -202,11 +188,10 @@ class BerkeleyAligner():
             for alignSent in aligned_sents:
                 english = alignSent.words
                 german = [None] + alignSent.mots
-                m = len(german) - 1
+                m = len(german)-1
                 l = len(english)
-                for i in range(0, m+1):
-                    for j in range(1, l+1):
-                        q[(i,j,l,m)] = (c[(i,j,l,m)] +  c1[(j,i,m,l)]) / (c[(j,l,m)] + c1[(i,m,l)] )
+                for i,j in itertools.product(range(0, m+1),range(1, l+1)):
+                    q[(i,j,l,m)] = (c[(i,j,l,m)] +  c1[(j,i,m,l)]) / (c[(j,l,m)] + c1[(i,m,l)] )
 
         return t, q
 
