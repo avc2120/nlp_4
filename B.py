@@ -43,32 +43,27 @@ class BerkeleyAligner():
         
     # TODO: Implement the EM algorithm. num_iters is the number of iterations. Returns the 
     # translation and distortion parameters as a tuple.
-    def train2(self, aligned_sents, num_iter):
-        print 'training 2'
-
-        german_vocab = set()
-        english_vocab = set()
+    def getCounts(self, aligned_sents, num_iter, e_to_g):
+        print 'getting counts'
 
         t = defaultdict(lambda: defaultdict(lambda: 0.0))
         counts = defaultdict(set)
+
         for alignSent in aligned_sents:
-            english_vocab.update(alignSent.mots)
-            german_vocab.update(alignSent.words)
-            english = alignSent.mots
-            german = alignSent.words
+            english = alignSent.mots if not e_to_g else alignSent.words
+            german = alignSent.words if not e_to_g else alignSent.mots
             for g_word in german:
                 counts[g_word].update(english)
         for key in counts.keys():
             values = counts[key]
             for value in values:
                 t[value][key] = 1.0/len(counts[key])
-        german_vocab.add(None)
 
         q = defaultdict(float)
 
         for alignSent in aligned_sents:
-            english = alignSent.mots
-            german = [None] + alignSent.words
+            english = alignSent.mots if not e_to_g else alignSent.words
+            german = [None] + alignSent.words if not e_to_g else [None] + alignSent.mots
             m = len(german) - 1
             l = len(english)
             initial_value = 1 / (m + 1)
@@ -77,13 +72,14 @@ class BerkeleyAligner():
                     q[(i,j,l,m)] = initial_value
 
         print 'collecting counts'
-        for i in range(0, num_iter):
-            c = defaultdict(float)
-            total_e = defaultdict(float)
+        c = defaultdict(float)
+        total_e = defaultdict(float)
+
+        for k in range(0, num_iter):
 
             for alignSent in aligned_sents:
-                english = alignSent.mots
-                german = [None] + alignSent.words
+                english = alignSent.mots if not e_to_g else alignSent.words
+                german = [None] + alignSent.words if not e_to_g else [None] + alignSent.mots
                 m = len(german) - 1
                 l = len(english)
 
@@ -104,54 +100,46 @@ class BerkeleyAligner():
                         c[g_word] += delta
                         c[(i,j,l,m)] += delta
                         c[(j,l,m)] += delta
-        return c
+        return c,t,q
     def train(self, aligned_sents, num_iter):
-        print 'start train1s'
-
-        # ibm1 = IBMModel1(aligned_sents, 10)
-        # t = ibm1.probabilities
-        
-        # Vocabulary of each language
-        german_vocab = set()
-        english_vocab = set()
-
+        print 'start train'
+        c1, t1, q1 = self.getCounts(aligned_sents, num_iter, False)  
+   
+        e_to_g = True
         t = defaultdict(lambda: defaultdict(lambda: 0.0))
         counts = defaultdict(set)
+
         for alignSent in aligned_sents:
-            english_vocab.update(alignSent.words)
-            german_vocab.update(alignSent.mots)
-            english = alignSent.words
-            german = alignSent.mots
+            english = alignSent.mots if not e_to_g else alignSent.words
+            german = alignSent.words if not e_to_g else alignSent.mots
             for g_word in german:
                 counts[g_word].update(english)
         for key in counts.keys():
             values = counts[key]
             for value in values:
-                t[value][key] = 1.0/float(len(counts[key]))
-        german_vocab.add(None)
+                t[value][key] = 1.0/len(counts[key])
+
         q = defaultdict(float)
 
         for alignSent in aligned_sents:
-            english = alignSent.words
-            german = [None] + alignSent.mots
+            english = alignSent.mots if not e_to_g else alignSent.words
+            german = [None] + alignSent.words if not e_to_g else [None] + alignSent.mots
             m = len(german) - 1
             l = len(english)
             initial_value = 1 / (m + 1)
             for i in range(0, m+1):
                 for j in range(1, l+1):
                     q[(i,j,l,m)] = initial_value
-        print 'collecting train 1'
-        c1 = self.train2(aligned_sents, num_iter) 
 
-        for i in range(0, num_iter):
+        print 'collecting counts'
+        c = defaultdict(float)
+        total_e = defaultdict(float)
 
-            c = defaultdict(float)
-
-            total_e = defaultdict(float)
+        for k in range(0, num_iter):
 
             for alignSent in aligned_sents:
-                english = alignSent.words
-                german = [None] + alignSent.mots
+                english = alignSent.mots if not e_to_g else alignSent.words
+                german = [None] + alignSent.words if not e_to_g else [None] + alignSent.mots
                 m = len(german) - 1
                 l = len(english)
 
@@ -172,16 +160,7 @@ class BerkeleyAligner():
                         c[g_word] += delta
                         c[(i,j,l,m)] += delta
                         c[(j,l,m)] += delta
-            
-            # estimate probabilities
-
-            t = defaultdict(lambda: defaultdict(lambda: 0.0))
-            q = defaultdict(float)
-
-            # Estimate the new lexical translation probabilities
             print 'calculating t and q'     
-
-            # Estimate the new alignment probabilities
             for alignSent in aligned_sents:
                 english = alignSent.words
                 german = [None] + alignSent.mots
