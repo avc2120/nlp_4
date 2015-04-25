@@ -45,11 +45,7 @@ class BerkeleyAligner():
     # translation and distortion parameters as a tuple.
     def train2(self, aligned_sents, num_iter):
         print 'training 2'
-        # ibm1 = IBMModel1(aligned_sents, 10)
-        # t = ibm1.probabilities
 
-
-        # Vocabulary of each language
         german_vocab = set()
         english_vocab = set()
 
@@ -110,7 +106,10 @@ class BerkeleyAligner():
                         c[(j,l,m)] += delta
         return c
     def train(self, aligned_sents, num_iter):
-        print 'start train'
+        print 'start train1s'
+
+        # ibm1 = IBMModel1(aligned_sents, 10)
+        # t = ibm1.probabilities
         
         # Vocabulary of each language
         german_vocab = set()
@@ -180,18 +179,18 @@ class BerkeleyAligner():
             q = defaultdict(float)
 
             # Estimate the new lexical translation probabilities
-            print 'calculating t and q'
-            for f,e in itertools.product(german_vocab,english_vocab):
-                t[e][f] = (c[(e,f)] + c1[(f,e)])/ (c[f] + c1[e])
+            print 'calculating t and q'     
 
             # Estimate the new alignment probabilities
             for alignSent in aligned_sents:
                 english = alignSent.words
                 german = [None] + alignSent.mots
-                m = len(german)-1
+                m = len(german) - 1
                 l = len(english)
-                for i,j in itertools.product(range(0, m+1),range(1, l+1)):
-                    q[(i,j,l,m)] = (c[(i,j,l,m)] +  c1[(j,i,m,l)]) / (c[(j,l,m)] + c1[(i,m,l)] )
+                for i in range(0, m+1):
+                    for j in range(1, l+1):
+                        q[(i,j,l,m)] = (c[(i,j,l,m)] +  c1[(j,i,m,l)]) / (c[(j,l,m)] + c1[(i,m,l)] )
+                        t[english[j-1]][german[i]] = (c[(english[j-1],german[i])] + c1[(german[i],english[j-1])])/ (c[german[i]] + c1[english[j-1]])
 
         return t, q
 
