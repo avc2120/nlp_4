@@ -43,9 +43,9 @@ class BerkeleyAligner():
         
     # TODO: Implement the EM algorithm. num_iters is the number of iterations. Returns the 
     # translation and distortion parameters as a tuple.
-    def getCounts(self, aligned_sents, num_iter, e_to_g):
+    def initialize(self, aligned_sents, num_iter, e_to_g):
         print 'getting counts'
-
+        total_e = defaultdict(float)
         t = defaultdict(lambda: defaultdict(lambda: 0.0))
         counts = defaultdict(set)
 
@@ -70,76 +70,47 @@ class BerkeleyAligner():
             for i in range(0, m+1):
                 for j in range(1, l+1):
                     q[(i,j,l,m)] = initial_value
+        return t,q
 
-        print 'collecting counts'
-        c = defaultdict(float)
-        total_e = defaultdict(float)
-
-        for k in range(0, num_iter):
-
-            for alignSent in aligned_sents:
-                english = alignSent.mots if not e_to_g else alignSent.words
-                german = [None] + alignSent.words if not e_to_g else [None] + alignSent.mots
-                m = len(german) - 1
-                l = len(english)
-
-                # compute normalization
-                for j in range(1, l+1):
-                    en_word = english[j-1]
-                    total_e[en_word] = 0
-                    for i in range(0, m+1):
-                        total_e[en_word] += t[en_word][german[i]] * q[(i,j,l,m)]
-
-                # collect counts
-                for j in range(1, l+1):
-                    en_word = english[j-1]
-                    for i in range(0, m+1):
-                        g_word = german[i]
-                        delta = t[en_word][g_word] * q[(i,j,l,m)] / total_e[en_word]
-                        c[(en_word,g_word)] += delta
-                        c[g_word] += delta
-                        c[(i,j,l,m)] += delta
-                        c[(j,l,m)] += delta
-        return c,t,q
     def train(self, aligned_sents, num_iter):
         print 'start train'
-        c1, t1, q1 = self.getCounts(aligned_sents, num_iter, False)  
-   
-        e_to_g = True
-        t = defaultdict(lambda: defaultdict(lambda: 0.0))
+        t, q = self.initialize(aligned_sents, num_iter, True)  
+        t1, q1 = self.initialize(aligned_sents, num_iter, False)  
+
         counts = defaultdict(set)
-
-        for alignSent in aligned_sents:
-            english = alignSent.mots if not e_to_g else alignSent.words
-            german = alignSent.words if not e_to_g else alignSent.mots
-            for g_word in german:
-                counts[g_word].update(english)
-        for key in counts.keys():
-            values = counts[key]
-            for value in values:
-                t[value][key] = 1.0/len(counts[key])
-
-        q = defaultdict(float)
-
-        for alignSent in aligned_sents:
-            english = alignSent.mots if not e_to_g else alignSent.words
-            german = [None] + alignSent.words if not e_to_g else [None] + alignSent.mots
-            m = len(german) - 1
-            l = len(english)
-            initial_value = 1 / (m + 1)
-            for i in range(0, m+1):
-                for j in range(1, l+1):
-                    q[(i,j,l,m)] = initial_value
-
-        print 'collecting counts'
         c = defaultdict(float)
+        c1 = defaultdict(float)
         total_e = defaultdict(float)
 
+        print 'collecting counts'
         for k in range(0, num_iter):
-
             for alignSent in aligned_sents:
-                english = alignSent.mots if not e_to_g else alignSent.words
-                german = [None] + alignSent.words if not e_to_g else [None] + alignSent.mots
+                english = alignSent.mots 
+                german = [None] + alignSent.words
+                m = len(german) - 1
+                l = len(english)
+
+                # compute normalization
+                for j in range(1, l+1):
+                    en_word = english[j-1]
+                    total_e[en_word] = 0
+                    for i in range(0, m+1):
+                        total_e[en_word] += t1[en_word][german[i]] * q1[(i,j,l,m)]
+
+                # collect counts
+                for j in range(1, l+1):
+                    en_word = english[j-1]
+                    for i in range(0, m+1):
+                        g_word = german[i]
+                        delta = t1[en_word][g_word] * q1[(i,j,l,m)] / total_e[en_word]
+                        c1[(en_word,g_word)] += delta
+                        c1[g_word] += delta
+                        c1[(i,j,l,m)] += delta
+                        c1[(j,l,m)] += delta
+        for k in range(0, num_iter):
+            for alignSent in aligned_sents:
+                english = alignSent.words
+                german = [None] + alignSent.mots
                 m = len(german) - 1
                 l = len(english)
 
@@ -160,6 +131,9 @@ class BerkeleyAligner():
                         c[g_word] += delta
                         c[(i,j,l,m)] += delta
                         c[(j,l,m)] += delta
+
+
+
             print 'calculating t and q'     
             for alignSent in aligned_sents:
                 english = alignSent.words
