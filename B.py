@@ -146,8 +146,9 @@ class BerkeleyAligner():
 
 
 def main(aligned_sents):
+
     ba = BerkeleyAligner(aligned_sents, 10)
-    #A.save_model_output(aligned_sents, ba, "ba.txt")
+    A.save_model_output(aligned_sents, ba, "error.txt")
     avg_aer = A.compute_avg_aer(aligned_sents, ba, 50)
 
     print ('Berkeley Aligner')

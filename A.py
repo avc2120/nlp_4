@@ -30,21 +30,26 @@ def save_model_output(aligned_sents, model, file_name):
     f = open(file_name, 'wb')
     for i in range(0,20):
         s = model.align(aligned_sents[i])
-        f.write(str(s.words) + '\n' + str(s.mots) + '\n' + str(s.alignment) + '\n\n' )
+        f.write(str(s.words) + '\n' + str(s.mots) + '\n' + str(s.alignment) + '\n' + str(aligned_sents[i].alignment_error_rate(s)) + '\n\n' )
 
 def main(aligned_sents):
+    # for n in range(1,31):
+    #     ibm1 = create_ibm1(aligned_sents, n)
+    #     save_model_output(aligned_sents, ibm1, "ibm1.txt")
+    #     avg_aer = compute_avg_aer(aligned_sents, ibm1, 50)
+
     ibm1 = create_ibm1(aligned_sents)
-    save_model_output(aligned_sents, ibm1, "ibm1.txt")
+    save_model_output(aligned_sents, ibm1, "ibm1_error.txt")
     avg_aer = compute_avg_aer(aligned_sents, ibm1, 50)
 
     print ('IBM Model 1')
     print ('---------------------------')
     print('Average AER: {0:.3f}\n'.format(avg_aer))
-
-    # ibm2 = create_ibm2(aligned_sents)
-    # save_model_output(aligned_sents, ibm2, "ibm2.txt")
-    # avg_aer = compute_avg_aer(aligned_sents, ibm2, 50)
     
-    # print ('IBM Model 2')
-    # print ('---------------------------')
-    # print('Average AER: {0:.3f}\n'.format(avg_aer))
+    ibm2 = create_ibm2(aligned_sents)
+    save_model_output(aligned_sents, ibm2, "ibm2_error.txt")
+    avg_aer = compute_avg_aer(aligned_sents, ibm2, 50)
+    
+    print ('IBM Model 2')
+    print ('---------------------------')
+    print('Average AER: {0:.3f}\n'.format(avg_aer))
